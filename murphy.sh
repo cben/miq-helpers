@@ -7,7 +7,7 @@ source $PREVPWD/colors.sh
 NEWLINE=$'\n'
 
 function usage() {
-	printGreen 'usage: murphy.sh [REF]'
+	printGreen 'usage: murphy.sh [REF [RUBOCOP_OPTIONS]]'
 	printGreen '       REF can be HEAD^^ or HEAD~4. It defaults to HEAD^.'
 }
 
@@ -61,18 +61,21 @@ eval "git rev-parse" &> /dev/null ||  die_error "Change dir into a git repo."
 if ! type haml-lint > /dev/null; then
 	if ! type unbuffer > /dev/null; then
 		die_error "haml-lint and unbuffer not found. Please install with \'gem install haml-lint\' \'sudo yum install expect\'"
-		
+
 	else
 		die_error "haml-lint not found. Please install with \'gem install haml-lint\'"
 	fi
-fi 
+fi
 
 if ! type unbuffer > /dev/null; then
 	die_error "unbuffer not found. Please install with \'sudo yum install expect\'"
-fi 
+fi
 
 
 REF="$1"
+shift
+RUBOCOP_OPTIONS=("$@")
+
 set -u
 
 if [ -z "$REF" ]; then
@@ -80,13 +83,14 @@ if [ -z "$REF" ]; then
 fi
 
 printGreen "Using $REF as reference."
-echo "" 
+echo ""
 
-printBlue "Running rubocop..." 
-$PREVPWD/rubocop.rb --against $REF -c $PREVPWD/.rubocop.yml  || true
+printBlue "Running rubocop..."
+RUBOCOP_CMD=($PREVPWD/rubocop.rb --against $REF -c $PREVPWD/.rubocop.yml "${RUBOCOP_OPTIONS[@]+"${RUBOCOP_OPTIONS[@]}"}")
+printBlue "${RUBOCOP_CMD[*]}"
+eval "${RUBOCOP_CMD[@]}"
 
-
-HAMLS=`git diff --diff-filter=AM --name-only ${REF} | grep haml || true` 
+HAMLS=`git diff --diff-filter=AM --name-only ${REF} | grep haml || true`
 NUM_HAMLS=`echo $HAMLS |  wc -w`
 
 
